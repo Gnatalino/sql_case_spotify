@@ -1,0 +1,28 @@
+WITH active_users AS (
+    SELECT
+        country,
+        COUNT(*) FILTER (WHERE CAST(last_active_date AS DATE) >= '2024-01-31'::DATE - INTERVAL '30 days'
+                         AND monthly_active_sessions >= 5
+                         AND listening_hours >= 10) AS active_users_count,
+        COUNT(*) AS total_users,
+        total_population 
+    FROM
+        penetration_analysis
+    GROUP BY
+        country,
+        total_population
+), penetration_rate AS (
+    SELECT
+        country,
+        -- Garanta a divisão por pelo menos 1 para evitar a divisão por zero
+        -- Converta o resultado em FLOAT para uma divisão precisa
+        active_users_count::FLOAT / GREATEST(total_population, 1) AS active_user_penetration_rate
+    FROM
+        active_users
+)
+SELECT
+    country,
+    -- Formatando a taxa de penetração com 10 casas decimais. Ajuste o formato conforme necessário.
+    TO_CHAR(active_user_penetration_rate, 'FM0.0000000000') AS active_user_penetration_rate
+FROM
+    penetration_rate;
